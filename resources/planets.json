@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Sun",
+    "xdist": 0.0,
+    "ydist": 0.0,
+    "zdist": 0.0,
+    "revolution_speed": 0.0
+  },
+  {
+    "name": "Mercury",
+    "xdist": 4.0,
+    "ydist": 0.7,
+    "zdist": 4.0,
+    "revolution_speed": 1.3
+  }
+]
