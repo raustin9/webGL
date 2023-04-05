@@ -165,7 +165,7 @@ glMatrix.mat4.perspective(
 glMatrix.mat4.translate(modelMatrix, modelMatrix, [-1.5, 0, -2]);
 // glMatrix.mat4.scale(modelMatrix, modelMatrix, [0.5, 0.5, 0.5]);
 
-glMatrix.mat4.translate(viewMatrix, viewMatrix, [-3, 0, 1]);
+glMatrix.mat4.translate(viewMatrix, viewMatrix, [0, -1, 2]);
 glMatrix.mat4.invert(viewMatrix, viewMatrix);
 
 function animate() {
