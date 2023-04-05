@@ -6,6 +6,8 @@ if (!gl) {
   throw new Error("WebGL is not supported on this browser");
 }
 
+
+
 /*
 vertexData = [...]
 
