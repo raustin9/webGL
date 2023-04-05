@@ -6,21 +6,6 @@ if (!gl) {
   throw new Error("WebGL is not supported on this browser");
 }
 
-
-
-/*
-vertexData = [...]
-
-create buffer on gpu 
-load vertex data into that buffer 
-
-create vertex shader 
-create fragment shader 
-create program 
-attach shaders to program 
-
-draw */
-
 // VERTEX DATA
 const vertexData = [
   0, 1, 0,
@@ -48,13 +33,14 @@ const vertexShader = gl.createShader(gl.VERTEX_SHADER);
 gl.shaderSource(vertexShader, `
   precision mediump float;
 
+  uniform mat4 uMatrix;
   attribute vec3 aPosition;
   attribute vec3 aColor;
   varying vec3 vColor;
 
   void main() {
     vColor = aColor;
-    gl_Position = vec4(aPosition, 1);
+    gl_Position = uMatrix * vec4(aPosition, 1);
   }
 `);
 gl.compileShader(vertexShader);
@@ -90,4 +76,20 @@ gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
 gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
 
 gl.useProgram(program);
-gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+const uniformLocations = {
+  matrix: gl.getUniformLocation(program, `uMatrix`)
+};
+
+const matrix = glMatrix.mat4.create();
+glMatrix.mat4.translate(matrix, matrix, [.2, .5, 0]);
+glMatrix.mat4.scale(matrix, matrix, [0.25, 0.25, 0.25]);
+
+function animate() {
+  requestAnimationFrame(animate);
+  glMatrix.mat4.rotateZ(matrix, matrix, Math.PI/2/70);
+  gl.uniformMatrix4fv(uniformLocations.matrix, false, matrix);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+animate();
