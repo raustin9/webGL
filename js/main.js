@@ -1,183 +1,104 @@
-const canvas = document.getElementById("main-canvas");
-const gl = canvas.getContext('webgl');
+let gl = null;
+let program = null;
+let globalTime = null;
+let vShaderName = 'basic.vert'; // The name of the file of the vertex shader
+let fShaderName = 'basic.frag'; // The name of the file of the fragment shader
+let vertexShader = null;        // temp global var for the vert shader
+let fragmentShader = null;      // temp global var for the frag shader
+let vertSource = null;             // temp global var of name of the vertex shader resource
+let fragSource = null;          // temp global var of name of the fragment shader resource
 
-// make sure that gl is not null
-if (!gl) {
-  throw new Error("WebGL is not supported on this browser");
-}
+async function InitDemo() {
+  let canvas = document.getElementById("main-canvas");
+  gl = canvas.getContext('webgl2');
 
-// VERTEX DATA
-const vertexData = [
-  // 0, 1, 0,
-  // 1, -1, 0,
-  // -1, -1, 0
+  gl.clearColor(0.75, 0.85, 0.8, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT, gl.DEPHT_BUFFER_BIT);
 
-  // Front
-  0.5, 0.5, 0.5,
-  0.5, -.5, 0.5,
-  -.5, 0.5, 0.5,
-  -.5, 0.5, 0.5,
-  0.5, -.5, 0.5,
-  -.5, -.5, 0.5,
+  // Get our vertex and fragment shaders
+  vertSource = await loadNetworkResourceAsText(`resources/shaders/vertex/${vShaderName}`);
+  fragSource = await loadNetworkResourceAsText(`resources/shaders/fragment/${fShaderName}`);
+  vertexShader = gl.createShader(gl.VERTEX_SHADER);
+  fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 
-  // Left
-  -.5, 0.5, 0.5,
-  -.5, -.5, 0.5,
-  -.5, 0.5, -.5,
-  -.5, 0.5, -.5,
-  -.5, -.5, 0.5,
-  -.5, -.5, -.5,
+  gl.shaderSource(vertexShader, vertSource);
+  gl.shaderSource(fragmentShader, fragSource);
 
-  // Back
-  -.5, 0.5, -.5,
-  -.5, -.5, -.5,
-  0.5, 0.5, -.5,
-  0.5, 0.5, -.5,
-  -.5, -.5, -.5,
-  0.5, -.5, -.5,
-
-  // Right
-  0.5, 0.5, -.5,
-  0.5, -.5, -.5,
-  0.5, 0.5, 0.5,
-  0.5, 0.5, 0.5,
-  0.5, -.5, 0.5,
-  0.5, -.5, -.5,
-
-  // Top
-  0.5, 0.5, 0.5,
-  0.5, 0.5, -.5,
-  -.5, 0.5, 0.5,
-  -.5, 0.5, 0.5,
-  0.5, 0.5, -.5,
-  -.5, 0.5, -.5,
-
-  // Bottom
-  0.5, -.5, 0.5,
-  0.5, -.5, -.5,
-  -.5, -.5, 0.5,
-  -.5, -.5, 0.5,
-  0.5, -.5, -.5,
-  -.5, -.5, -.5,
-];
-
-// const colorData = [
-//   1, 0, 0, // V1.color
-//   0, 1, 0, // V2.color
-//   0, 0, 1, // V3.color
-// ];
-
-function randomColor() {
-  return [Math.random(),Math.random(),Math.random()];
-}
-
-let colorData = [];
-for (let face = 0; face < 6; face++) {
-  let faceColor = randomColor();
-  for (let vertex = 0; vertex < 6; vertex++) {
-    colorData.push(...faceColor);
+  gl.compileShader(vertexShader);
+  if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+    console.error("ERROR compiling vertex shader", gl.getShaderInfoLog(vertexShader));
+    return;
   }
+  gl.compileShader(fragmentShader);
+  if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+    console.error("ERROR compiling vertex shader", gl.getShaderInfoLog(fragmentShader));
+    return;
+  }
+
+  program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error("ERROR linking program", gl.getProgramInfoLog(program));
+    return;
+  }
+
+  // ONLY KEEP FOR TESTING
+  gl.validateProgram(program);
+  if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
+    console.error("ERROR validating program", gl.getProgramInfoLog(program));
+    return;
+  }
+
+  // Create buffers on GPU
+  let triangleVertices = [
+    // X, Y      R, G, B
+    0.0, 0.5,    1.0, 1.0, 0.0,
+    -0.5, -0.5,  0.7, 0.0, 1.0,
+    0.5, -0.5,   0.1, 1.0, 0.6
+  ];
+
+  let triangleVertexBufferObject = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBufferObject);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+
+  let positionAttribLocation = gl.getAttribLocation(program, 'aVertexPosition');
+  let colorAttribLocation = gl.getAttribLocation(program, 'aVertexColor');
+  gl.vertexAttribPointer(
+    positionAttribLocation,             // attribute location
+    2,                                  // number of elements per attribute
+    gl.FLOAT,                           // type of element
+    gl.FALSE,                           // normalized
+    5 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
+    0                                   // offset
+  );
+  gl.vertexAttribPointer(
+    colorAttribLocation,             // attribute location
+    3,                                  // number of elements per attribute
+    gl.FLOAT,                           // type of element
+    gl.FALSE,                           // normalized
+    5 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
+    2 * Float32Array.BYTES_PER_ELEMENT, // offset from beginning of a single vertex
+  );
+
+  gl.enableVertexAttribArray(positionAttribLocation);
+  gl.enableVertexAttribArray(colorAttribLocation);
+
+  // // MAIN RENDER LOOP
+  gl.useProgram(program);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
-// const colorData = [
-//   ...randomColor(),
-//   ...randomColor(),
-//   ...randomColor(),
-// ];
+/**
+ * This function loads the necessary resources
+ * This includes the necessary models to render and the shaders
+ */
+async function Setup() {
+  // let objData = await loadNetworkResourceAsText('resources/models/sphere.obj');
+  vertSource = await loadNetworkResourceAsText(`resources/shaders/vertex/${vShaderName}`);
+  fragSource = await loadNetworkResourceAsText(`resources/shaders/fragment/${fShaderName}`);
 
-// CREATE BUFFERS
-const positionBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexData), gl.STATIC_DRAW);
-
-const colorBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colorData), gl.STATIC_DRAW);
-
-// Create the vertex shader
-const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-gl.shaderSource(vertexShader, `
-  precision mediump float;
-
-  uniform mat4 uMatrix;
-  attribute vec3 aPosition;
-  attribute vec3 aColor;
-  varying vec3 vColor;
-
-  void main() {
-    vColor = aColor;
-    gl_Position = uMatrix * vec4(aPosition, 1);
-  }
-`);
-gl.compileShader(vertexShader);
-
-// create the fragment shader
-const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fragmentShader, `
-  precision mediump float;
-
-  varying vec3 vColor;
-
-  void main() {
-    gl_FragColor = vec4(vColor, 1);
-  }
-`);
-gl.compileShader(fragmentShader);
-
-// create program
-const program = gl.createProgram();
-gl.attachShader(program, vertexShader);
-gl.attachShader(program, fragmentShader);
-gl.linkProgram(program);
-
-// create vertex attributes
-const positionLocation = gl.getAttribLocation(program, `aPosition`);
-gl.enableVertexAttribArray(positionLocation);
-gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
-
-const colorLocation = gl.getAttribLocation(program, `aColor`);
-gl.enableVertexAttribArray(colorLocation);
-gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
-
-gl.useProgram(program);
-gl.enable(gl.DEPTH_TEST);
-
-const uniformLocations = {
-  matrix: gl.getUniformLocation(program, `uMatrix`)
-};
-
-const modelMatrix = glMatrix.mat4.create();
-const viewMatrix = glMatrix.mat4.create();
-const modelViewMatrix = glMatrix.mat4.create();
-const projectionMatrix = glMatrix.mat4.create();
-const modelViewProjectionMatrix = glMatrix.mat4.create();
-
-glMatrix.mat4.perspective(
-  projectionMatrix, 
-  75 * Math.PI/180,           // vertical field of view
-  canvas.width/canvas.height, // aspect ratio
-  1e-4,                       // near cull disctance
-  1e4,                        // far cull distance
-);
-
-glMatrix.mat4.translate(modelMatrix, modelMatrix, [-1.5, 0, -2]);
-// glMatrix.mat4.scale(modelMatrix, modelMatrix, [0.5, 0.5, 0.5]);
-
-glMatrix.mat4.translate(viewMatrix, viewMatrix, [0, -1, 2]);
-glMatrix.mat4.invert(viewMatrix, viewMatrix);
-
-function animate() {
-  requestAnimationFrame(animate);
-  // glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, Math.PI/2/70);
-  // glMatrix.mat4.rotateX(modelMatrix, modelMatrix, Math.PI/2/70);
-
-  glMatrix.mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
-  glMatrix.mat4.multiply(modelViewProjectionMatrix, projectionMatrix, modelViewMatrix);
-
-  gl.uniformMatrix4fv(uniformLocations.matrix, false, modelViewProjectionMatrix);
-  gl.drawArrays(gl.TRIANGLES, 0, vertexData.length / 3);
+  // for now, we will load these into global vars
+  // but we will change it to be per object soon
 }
-
-animate();
