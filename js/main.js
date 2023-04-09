@@ -60,42 +60,42 @@ async function InitDemo() {
   ];
 
   let boxVertices = 
-	[ // X, Y, Z           R, G, B
+	[ // X, Y, Z         U, V
 		// Top
-		-1.0, 1.0, -1.0,   0.5, 0.5, 0.5,
-		-1.0, 1.0, 1.0,    0.5, 0.5, 0.5,
-		1.0, 1.0, 1.0,     0.5, 0.5, 0.5,
-		1.0, 1.0, -1.0,    0.5, 0.5, 0.5,
+		-1.0, 1.0, -1.0,   0, 0,
+		-1.0, 1.0, 1.0,    0, 1,
+		1.0, 1.0, 1.0,     1, 1,
+		1.0, 1.0, -1.0,    1, 0,
 
 		// Left
-		-1.0, 1.0, 1.0,    0.75, 0.25, 0.5,
-		-1.0, -1.0, 1.0,   0.75, 0.25, 0.5,
-		-1.0, -1.0, -1.0,  0.75, 0.25, 0.5,
-		-1.0, 1.0, -1.0,   0.75, 0.25, 0.5,
+		-1.0, 1.0, 1.0,    0, 0,
+		-1.0, -1.0, 1.0,   1, 0,
+		-1.0, -1.0, -1.0,  1, 1,
+		-1.0, 1.0, -1.0,   0, 1,
 
 		// Right
-		1.0, 1.0, 1.0,    0.25, 0.25, 0.75,
-		1.0, -1.0, 1.0,   0.25, 0.25, 0.75,
-		1.0, -1.0, -1.0,  0.25, 0.25, 0.75,
-		1.0, 1.0, -1.0,   0.25, 0.25, 0.75,
+		1.0, 1.0, 1.0,    1, 1,
+		1.0, -1.0, 1.0,   0, 1,
+		1.0, -1.0, -1.0,  0, 0,
+		1.0, 1.0, -1.0,   1, 0,
 
 		// Front
-		1.0, 1.0, 1.0,    1.0, 0.0, 0.15,
-		1.0, -1.0, 1.0,    1.0, 0.0, 0.15,
-		-1.0, -1.0, 1.0,    1.0, 0.0, 0.15,
-		-1.0, 1.0, 1.0,    1.0, 0.0, 0.15,
+		1.0, 1.0, 1.0,    1, 1,
+		1.0, -1.0, 1.0,    1, 0,
+		-1.0, -1.0, 1.0,    0, 0,
+		-1.0, 1.0, 1.0,    0, 1,
 
 		// Back
-		1.0, 1.0, -1.0,    0.0, 1.0, 0.15,
-		1.0, -1.0, -1.0,    0.0, 1.0, 0.15,
-		-1.0, -1.0, -1.0,    0.0, 1.0, 0.15,
-		-1.0, 1.0, -1.0,    0.0, 1.0, 0.15,
+		1.0, 1.0, -1.0,    0, 0,
+		1.0, -1.0, -1.0,    0, 1,
+		-1.0, -1.0, -1.0,    1, 1,
+		-1.0, 1.0, -1.0,    1, 0,
 
 		// Bottom
-		-1.0, -1.0, -1.0,   0.5, 0.5, 1.0,
-		-1.0, -1.0, 1.0,    0.5, 0.5, 1.0,
-		1.0, -1.0, 1.0,     0.5, 0.5, 1.0,
-		1.0, -1.0, -1.0,    0.5, 0.5, 1.0,
+		-1.0, -1.0, -1.0,   1, 1,
+		-1.0, -1.0, 1.0,    1, 0,
+		1.0, -1.0, 1.0,     0, 0,
+		1.0, -1.0, -1.0,    0, 1,
 	];
 
   let boxIndices = [
@@ -133,26 +133,38 @@ async function InitDemo() {
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
 
   let positionAttribLocation = gl.getAttribLocation(program, 'aVertexPosition');
-  let colorAttribLocation = gl.getAttribLocation(program, 'aVertexColor');
+  let textureCoordAttribLocation = gl.getAttribLocation(program, 'aVertexTextureCoord');
   gl.vertexAttribPointer(
     positionAttribLocation,             // attribute location
     3,                                  // number of elements per attribute
     gl.FLOAT,                           // type of element
     gl.FALSE,                           // normalized
-    6 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
+    5 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
     0                                   // offset
   );
   gl.vertexAttribPointer(
-    colorAttribLocation,             // attribute location
-    3,                                  // number of elements per attribute
+    textureCoordAttribLocation,             // attribute location
+    2,                                  // number of elements per attribute
     gl.FLOAT,                           // type of element
     gl.FALSE,                           // normalized
-    6 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
+    5 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
     3 * Float32Array.BYTES_PER_ELEMENT, // offset from beginning of a single vertex
   );
 
   gl.enableVertexAttribArray(positionAttribLocation);
-  gl.enableVertexAttribArray(colorAttribLocation);
+  gl.enableVertexAttribArray(textureCoordAttribLocation);
+
+  // CREATE TEXTURE
+  let boxTexture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, boxTexture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, document.getElementById("crate-img"));
+
+  gl.bindTexture(gl.TEXTURE_2D, null);
 
 
   gl.useProgram(program);
@@ -208,7 +220,10 @@ async function InitDemo() {
     gl.uniformMatrix4fv(worldMatrixUniform, gl.FALSE, worldMatrix);
 
     gl.clearColor(0.75,0.85,0.80,1.0);
-    gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT)
+    gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+
+    gl.bindTexture(gl.TEXTURE_2D, boxTexture);
+    gl.activeTexture(gl.TEXTURE0);
     gl.drawElements(gl.TRIANGLES, boxIndices.length, gl.UNSIGNED_SHORT, 0);
     requestAnimationFrame(renderScene);
   }
