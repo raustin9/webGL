@@ -13,7 +13,7 @@ async function InitDemo() {
   gl = canvas.getContext('webgl2');
 
   gl.clearColor(0.75, 0.85, 0.8, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT, gl.DEPHT_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   // Get our vertex and fragment shaders
   vertSource = await loadNetworkResourceAsText(`resources/shaders/vertex/${vShaderName}`);
@@ -53,24 +53,93 @@ async function InitDemo() {
 
   // Create buffers on GPU
   let triangleVertices = [
-    // X, Y      R, G, B
-    0.0, 0.5,    1.0, 1.0, 0.0,
-    -0.5, -0.5,  0.7, 0.0, 1.0,
-    0.5, -0.5,   0.1, 1.0, 0.6
+    // X, Y           R, G, B
+    0.0, 0.5, 0.0,    1.0, 1.0, 0.0,
+    -0.5, -0.5, 0.0,  0.7, 0.0, 1.0,
+    0.5, -0.5, 0.0,   0.1, 1.0, 0.6
   ];
 
-  let triangleVertexBufferObject = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBufferObject);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+  let boxVertices = 
+	[ // X, Y, Z           R, G, B
+		// Top
+		-1.0, 1.0, -1.0,   0.5, 0.5, 0.5,
+		-1.0, 1.0, 1.0,    0.5, 0.5, 0.5,
+		1.0, 1.0, 1.0,     0.5, 0.5, 0.5,
+		1.0, 1.0, -1.0,    0.5, 0.5, 0.5,
+
+		// Left
+		-1.0, 1.0, 1.0,    0.75, 0.25, 0.5,
+		-1.0, -1.0, 1.0,   0.75, 0.25, 0.5,
+		-1.0, -1.0, -1.0,  0.75, 0.25, 0.5,
+		-1.0, 1.0, -1.0,   0.75, 0.25, 0.5,
+
+		// Right
+		1.0, 1.0, 1.0,    0.25, 0.25, 0.75,
+		1.0, -1.0, 1.0,   0.25, 0.25, 0.75,
+		1.0, -1.0, -1.0,  0.25, 0.25, 0.75,
+		1.0, 1.0, -1.0,   0.25, 0.25, 0.75,
+
+		// Front
+		1.0, 1.0, 1.0,    1.0, 0.0, 0.15,
+		1.0, -1.0, 1.0,    1.0, 0.0, 0.15,
+		-1.0, -1.0, 1.0,    1.0, 0.0, 0.15,
+		-1.0, 1.0, 1.0,    1.0, 0.0, 0.15,
+
+		// Back
+		1.0, 1.0, -1.0,    0.0, 1.0, 0.15,
+		1.0, -1.0, -1.0,    0.0, 1.0, 0.15,
+		-1.0, -1.0, -1.0,    0.0, 1.0, 0.15,
+		-1.0, 1.0, -1.0,    0.0, 1.0, 0.15,
+
+		// Bottom
+		-1.0, -1.0, -1.0,   0.5, 0.5, 1.0,
+		-1.0, -1.0, 1.0,    0.5, 0.5, 1.0,
+		1.0, -1.0, 1.0,     0.5, 0.5, 1.0,
+		1.0, -1.0, -1.0,    0.5, 0.5, 1.0,
+	];
+
+  let boxIndices = [
+    // Top
+		0, 1, 2,
+		0, 2, 3,
+
+		// Left
+		5, 4, 6,
+		6, 4, 7,
+
+		// Right
+		8, 9, 10,
+		8, 10, 11,
+
+		// Front
+		13, 12, 14,
+		15, 14, 12,
+
+		// Back
+		16, 17, 18,
+		16, 18, 19,
+
+		// Bottom
+		21, 20, 22,
+		22, 20, 23
+  ]
+
+  let boxVertexBufferObject = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVertices), gl.STATIC_DRAW);
+
+  let boxBufferIndexObject = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxBufferIndexObject);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
 
   let positionAttribLocation = gl.getAttribLocation(program, 'aVertexPosition');
   let colorAttribLocation = gl.getAttribLocation(program, 'aVertexColor');
   gl.vertexAttribPointer(
     positionAttribLocation,             // attribute location
-    2,                                  // number of elements per attribute
+    3,                                  // number of elements per attribute
     gl.FLOAT,                           // type of element
     gl.FALSE,                           // normalized
-    5 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
+    6 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
     0                                   // offset
   );
   gl.vertexAttribPointer(
@@ -78,16 +147,76 @@ async function InitDemo() {
     3,                                  // number of elements per attribute
     gl.FLOAT,                           // type of element
     gl.FALSE,                           // normalized
-    5 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
-    2 * Float32Array.BYTES_PER_ELEMENT, // offset from beginning of a single vertex
+    6 * Float32Array.BYTES_PER_ELEMENT, // size of individual vertex
+    3 * Float32Array.BYTES_PER_ELEMENT, // offset from beginning of a single vertex
   );
 
   gl.enableVertexAttribArray(positionAttribLocation);
   gl.enableVertexAttribArray(colorAttribLocation);
 
-  // // MAIN RENDER LOOP
+
   gl.useProgram(program);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.CULL_FACE);
+  gl.frontFace(gl.CCW);
+  gl.cullFace(gl.BACK);
+
+  // UNIFORMS
+  let worldMatrixUniform = gl.getUniformLocation(program, 'uWorldMatrix');
+  let viewMatrixUniform = gl.getUniformLocation(program, 'uViewMatrix');
+  let projectionMatrixUniform = gl.getUniformLocation(program, 'uProjectionMatrix');
+
+  let projectionMatrix = glMatrix.mat4.create();
+  let worldMatrix = glMatrix.mat4.create();
+  let viewMatrix = glMatrix.mat4.create();
+  glMatrix.mat4.lookAt(
+    viewMatrix,
+    [0,0,-8],
+    [0,0,0],
+    [0,1,0]
+  );
+  glMatrix.mat4.perspective(
+    projectionMatrix, 
+    45 * Math.PI/180,           // vertical field of view
+    canvas.width/canvas.height, // aspect ratio
+    1e-4,                       // near cull disctance
+    1e4,                        // far cull distance
+  );
+
+  gl.uniformMatrix4fv(worldMatrixUniform, gl.FALSE, worldMatrix);
+  gl.uniformMatrix4fv(viewMatrixUniform, gl.FALSE, viewMatrix);
+  gl.uniformMatrix4fv(projectionMatrixUniform, gl.FALSE, projectionMatrix);
+
+  // // MAIN RENDER LOOP
+  let angle = 0;
+  let identity = glMatrix.mat4.create();
+  function renderScene() {
+    angle = performance.now() / 1000 / 6 * 2 * Math.PI;
+
+    glMatrix.mat4.rotate(
+      worldMatrix,
+      identity,
+      angle,
+      [0,1,0]
+    );
+    glMatrix.mat4.rotate(
+      worldMatrix,
+      worldMatrix,
+      angle/2,
+      [0,0,1]
+    );
+    gl.uniformMatrix4fv(worldMatrixUniform, gl.FALSE, worldMatrix);
+
+    gl.clearColor(0.75,0.85,0.80,1.0);
+    gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT)
+    gl.drawElements(gl.TRIANGLES, boxIndices.length, gl.UNSIGNED_SHORT, 0);
+    requestAnimationFrame(renderScene);
+  }
+  requestAnimationFrame(renderScene);
+  
+  
+  
+  
 }
 
 /**

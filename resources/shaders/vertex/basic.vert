@@ -1,11 +1,15 @@
 // precision mediump float;
 
-attribute vec2 aVertexPosition;
+attribute vec3 aVertexPosition;
 attribute vec3 aVertexColor;
 
 varying vec3 vFragmentColor;
 
+uniform mat4 uWorldMatrix;
+uniform mat4 uViewMatrix;
+uniform mat4 uProjectionMatrix;
+
 void main() {
   vFragmentColor = aVertexColor;
-  gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+  gl_Position = uProjectionMatrix * uViewMatrix * uWorldMatrix * vec4(aVertexPosition, 1.0);
 }
